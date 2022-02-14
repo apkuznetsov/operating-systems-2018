@@ -1,0 +1,16 @@
+LIBRARY DLL
+EXPORTS
+HashTable				= ??0HashTable@@QAE@H@Z
+Add						= ?Add@HashTable@@QAEXV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z
+DeleteByKey				= ?DeleteByKey@HashTable@@QAE_NH@Z
+Edit					= ?Edit@HashTable@@QAE_NHV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
+GetArray				= ?GetArray@HashTable@@QAEPAUNode@@XZ
+GetHash					= ?GetHash@HashTable@@QAEHH@Z
+GetNodeByKey			= ?GetNodeByKey@HashTable@@QAEPAUNode@@H@Z
+GetSizeOfTableInBytes	= ?GetSizeOfTableInBytes@HashTable@@QAE?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ
+GetValueByKey			= ?GetValueByKey@HashTable@@QAE?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z
+IsExists				= ?IsExists@HashTable@@QAE_NH@Z
+Length					= ?Length@HashTable@@QAEHXZ
+Load					= ?Load@HashTable@@QAEXV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
+NewHashTable			= ?NewHashTable@HashTable@@QAEPAV1@H@Z
+Save					= ?Save@HashTable@@QAEXV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
