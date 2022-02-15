@@ -47,11 +47,28 @@ HashTable* Impl(int size)
 	return hashTable;
 }
 
+void ShowContentOfHashTable(HashTable* hashTable)
+{
+Node* buffer;
+	cout << "все ключи хэш-таблицы: " << endl;
+	for (int i = 0; i < hashTable->Length(); i++)
+	{
+		buffer = hashTable->GetArray()[i].GetNext();
+		cout << i << " : ";
+		while (buffer != NULL)
+		{
+			cout << buffer->GetKey();
+			buffer = buffer->GetNext();
+		}
+		cout << endl;
+	}
+}
+
 int main()
 {
 	setlocale(LC_ALL, "Russian");
 
-	cout << "Лабораторная работа №6.\n"
+	cout << "Лабораторная работа №7.\n"
 		<< "Выполнил: Кузнецов А. П., группа 6213.\n" << endl;
 
 	setlocale(LC_ALL, "Russian");
@@ -128,6 +145,10 @@ int main()
 		cout << msg << endl;
 	}
 
+	/*
+	Мьютекс – объект ядра, используемый как средство синхронизации доступа потоков одного или нескольких приложений к критическому участку. 
+	*/
+	
 	string buf;
 	string value;
 	int key = 0;
@@ -158,6 +179,7 @@ int main()
 				cin >> value;
 				hashTable->Add(value, key);
 				cout << "элемент успешно добавлен " << "(" << hashTable->GetValueByKey(key) << "," << key << ")" << endl;
+				ShowContentOfHashTable(hashTable);
 				break;
 			}
 			case 2:
@@ -204,19 +226,7 @@ int main()
 			}
 			case 5:
 			{
-				Node* buffer;
-				cout << "все ключи хэш-таблицы: " << endl;
-				for (int i = 0; i < hashTable->Length(); i++)
-				{
-					buffer = hashTable->GetArray()[i].GetNext();
-					cout << i << " : ";
-					while (buffer != NULL)
-					{
-						cout << buffer->GetKey();
-						buffer = buffer->GetNext();
-					}
-					cout << endl;
-				}
+				ShowContentOfHashTable(hashTable);
 				break;
 			}
 			case 6:

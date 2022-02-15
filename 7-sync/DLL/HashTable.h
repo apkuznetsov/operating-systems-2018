@@ -39,4 +39,7 @@ public:
 	void Load(string fileName);
 
 	HashTable* NewHashTable(int size);
+
+	byte* GetStringFromFile(wstring);
+	int GetFileSize(wstring);
 };

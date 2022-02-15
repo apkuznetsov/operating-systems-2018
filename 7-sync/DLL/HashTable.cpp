@@ -4,6 +4,127 @@
 #include <vector>
 using namespace std;
 
+// аргументы
+struct ADDFUNC_ARGS
+{
+	HANDLE* mutex;
+	int key;
+	string value;
+	HashTable* hashTable;
+};
+struct SAVEFUNC_ARGS
+{
+	HANDLE* mutex;
+	string fileName;
+	HashTable* hashTable;
+};
+
+// функция потока:
+DWORD WINAPI AddThread(LPVOID vArgs)			// LPVOID - это указатель.При этом это указатель(P от Pointer) на что угодно (VOID) и дальний(L - от Long).
+{
+	ADDFUNC_ARGS* args = (ADDFUNC_ARGS*)vArgs;	// явно преобразуем аргумент функции к структуре
+
+												// присваивание полученных аргументов:
+	HANDLE* mutex = args->mutex;
+	int key = args->key;
+	string value = args->value;
+	HashTable* hashTable = args->hashTable;
+
+	WaitForSingleObject(*mutex, INFINITE);
+
+	Node* tempNode = new Node();
+	tempNode->SetKey(key);
+	tempNode->SetValue(&value[0]);
+	tempNode->SetNext(NULL);
+	/*
+	1) доступ к элементу (узлу) по индексу
+	2) индекс -- хэш-значение, сформированное из ключа узла
+	3) узел расположенный по индексу -- ссылается на новый элемент
+	*/
+	hashTable->GetArray()[hashTable->GetHash(tempNode->GetKey())].GetLastNode()->SetNext(tempNode);
+
+	ReleaseMutex(mutex);
+	ExitThread(0);
+}
+
+DWORD WINAPI SaveThread(LPVOID vArgs)
+{
+	SAVEFUNC_ARGS* args = (SAVEFUNC_ARGS*)vArgs;
+
+	HANDLE* mutex = args->mutex;
+	HashTable* hashTable = args->hashTable;
+	string fileName = args->fileName;
+
+	WaitForSingleObject(*mutex, INFINITE);
+
+	hashTable->Save(fileName);
+
+	ReleaseMutex(mutex);
+	ExitThread(0);
+}
+
+void HashTable::Add(string value, int key)
+{
+	HANDLE mutex = CreateMutex(NULL, FALSE, NULL);
+
+	ADDFUNC_ARGS addArgs = { &mutex, key, value , this };
+	SAVEFUNC_ARGS saveArgs = { &mutex, "file.txt", this };
+
+	HANDLE addThread = CreateThread(NULL, 0, &AddThread, (LPVOID)&addArgs, 0, NULL);	// вызов AddThread()
+	WaitForSingleObject(addThread, INFINITE);
+	HANDLE saveThread = CreateThread(NULL, 0, &SaveThread, (LPVOID)&saveArgs, 0, NULL);	// вызов SaveThread()
+	HANDLE* threads = new HANDLE[2]{ addThread, saveThread };
+
+	WaitForMultipleObjects(2, threads, TRUE, INFINITE);
+}
+
+void HashTable::Save(string fileName)
+{
+	DeleteFile(wstring(fileName.begin(), fileName.end()).c_str());
+
+	HANDLE hFile = CreateFile(
+		wstring(fileName.begin(), fileName.end()).c_str(),	// имя файла, преобразуемое к типу char*
+		GENERIC_WRITE,										// доступ для чтения и записи
+		0,													// файл не может быть разделяемым
+		NULL,												// дескриптор файла не наследуется
+		CREATE_NEW,											// создать новый, если не существует
+		FILE_ATTRIBUTE_NORMAL,								// файл не имеет особых атрибутов
+		NULL												// всегда NULL для Windows
+	);
+	if (hFile != INVALID_HANDLE_VALUE)			// если файл создан
+	{
+		DWORD temp;
+
+		WriteFile(
+			hFile,								// дескриптор файла
+			GetSizeOfTableInBytes().c_str(),	// буфер данных (строка конвертированная в массив символов)
+			GetSizeOfTableInBytes().length(),	// число байтов для записи
+			&temp,								// число записанных байтов
+			NULL);								// асинхронный буфер (отсутствует)
+
+		for (int i = 0; i < sizeOfTable; i++)
+		{
+			Node tempNode = hashArr[i];
+			while (tempNode.GetNext() != NULL)
+			{
+				tempNode = *tempNode.GetNext();
+				WriteFile(
+					hFile,
+					tempNode.GetBytes().c_str(),
+					tempNode.GetBytes().length(),
+					&temp,
+					NULL);
+			}
+		}
+		CloseHandle(hFile);
+	}
+	else	// файл не создан
+	{
+		CloseHandle(hFile);
+		throw "ошибка: файл не создан";
+	}
+}
+
 HashTable::HashTable(int size)
 {
 	sizeOfTable = size;
@@ -23,14 +144,6 @@ int HashTable::GetHash(int key)
 	return hash;
 }
 
-void HashTable::Add(string value, int key)
-{
-	Node* newNode = new Node();
-	newNode->SetKey(key);
-	newNode->SetValue(&value[0]);
-	newNode->SetNext(NULL);
-	hashArr[GetHash(newNode->GetKey())].GetLastNode()->SetNext(newNode);
-}
 bool HashTable::Edit(int key, string value)
 {
 	Node* tempNode = GetNodeByKey(key);
@@ -108,50 +221,7 @@ string HashTable::GetSizeOfTableInBytes()
 		result += *(bytes + i);
 	return result;
 }
-void HashTable::Save(string fileName)
-{
-	HANDLE hFile = CreateFile(
-		wstring(fileName.begin(), fileName.end()).c_str(),	// имя файла, преобразуемое к типу char*
-		GENERIC_WRITE,										// доступ для чтения и записи
-		0,													// файл не может быть разделяемым
-		NULL,												// дескриптор файла не наследуется
-		CREATE_NEW,											// создать новый, если не существует
-		FILE_ATTRIBUTE_NORMAL,								// файл не имеет особых атрибутов
-		NULL												// всегда NULL для Windows
-	);
-	if (hFile != INVALID_HANDLE_VALUE)			// если файл создан
-	{
-		DWORD temp;
 
-		WriteFile(
-			hFile,								// дескриптор файла
-			GetSizeOfTableInBytes().c_str(),	// буфер данных (строка конвертированная в массив символов)
-			GetSizeOfTableInBytes().length(),	// число байтов для записи
-			&temp,								// число записанных байтов
-			NULL);								// асинхронный буфер (отсутствует)
-
-		for (int i = 0; i < sizeOfTable; i++)
-		{
-			Node tempNode = hashArr[i];
-			while (tempNode.GetNext() != NULL)
-			{
-				tempNode = *tempNode.GetNext();
-				WriteFile(
-					hFile,
-					tempNode.GetBytes().c_str(),
-					tempNode.GetBytes().length(),
-					&temp,
-					NULL);
-			}
-		}
-		CloseHandle(hFile);
-	}
-	else	// файл не создан
-	{
-		CloseHandle(hFile);
-		throw "ошибка: файл не создан";
-	}
-}
 void HashTable::Load(string fileName)
 {
 	HANDLE hFile = CreateFile(
